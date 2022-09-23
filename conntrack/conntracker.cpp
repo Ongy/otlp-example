@@ -77,7 +77,7 @@ void initMetrics() {
 }
 } // namespace
 
-int main(int argc, char **argv) {
+int main(void) {
   initMetrics();
 
   auto provider = metrics_api::Provider::GetMeterProvider();
