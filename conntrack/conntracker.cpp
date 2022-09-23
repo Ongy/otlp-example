@@ -137,9 +137,7 @@ struct TrackerState {
 
 static void handle_connection_update(TrackerState &state, uint64_t orig,
                                      uint64_t repl, struct nf_conntrack *ct) {
-  state.persisted.delayed->Add(1);
   state.persisted.direct->Add(1);
-  state.persisted.skipped->Add(1);
 }
 
 /* TODO: This needs to be moved. Obviously */
