@@ -52,40 +52,6 @@ opentelemetry::exporter::otlp::OtlpHttpExporterOptions opts = {
     .url = "http://mario.local.ongy.net:4318/v1/traces",
 };
 
-void initTracer() {
-
-  // CONFIGURE BATCH SPAN PROCESSOR PARAMETERS
-
-  trace_sdk::BatchSpanProcessorOptions options{};
-
-  // We export `kNumSpans` after every `schedule_delay_millis` milliseconds.
-  options.max_export_batch_size = 50;
-  // We make the queue size `KNumSpans`*2+5 because when the queue is half
-  // full, a preemptive notif is sent to start an export call, which we want
-  // to avoid in this simple example.
-  options.max_queue_size = options.max_export_batch_size * 2 + 5;
-  // Time interval (in ms) between two consecutive exports.
-  options.schedule_delay_millis = std::chrono::milliseconds(3000);
-
-  //	auto exporter = trace_exporter::OStreamSpanExporterFactory::Create();
-  auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
-
-  // auto processor =
-  //     trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  auto processor = trace_sdk::BatchSpanProcessorFactory::Create(
-      std::move(exporter), options);
-
-  std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
-      trace_sdk::TracerProviderFactory::Create(
-          std::move(processor),
-          opentelemetry::sdk::resource::Resource::Create(
-              {{"service.name", "conntracker:conntrack"},
-               {"service.namespace", "net.ongy"},
-               {"process.executable.name", "conntrack"}}));
-
-  // Set the global trace provider
-  trace_api::Provider::SetTracerProvider(provider);
-}
 
 void initMetrics() {
   opentelemetry::exporter::metrics::PrometheusExporterOptions promOptions;
@@ -172,33 +138,11 @@ struct TrackerState {
 
 static void create_new_connection(TrackerState &state, uint64_t orig,
                                   uint64_t repl, struct nf_conntrack *ct) {
-  auto provider = trace::Provider::GetTracerProvider();
-  auto tracer = provider->GetTracer("conntracker", OPENTELEMETRY_SDK_VERSION);
-  auto span = tracer->StartSpan(__FUNCTION__, {
-                                                  {"srcIp", "127.0.0.1"},
-                                                  {"dstIp", "8.8.4.4"},
-                                                  {"srcPort", 12345},
-                                                  {"dstPort", 53},
-                                                  {"protocol", IPPROTO_TCP},
-                                              });
-
-  auto functionScope = trace::Scope(span);
-
-  span->SetAttribute("ConnectionId", "UUID");
-
   state.persisted.direct->Add(1);
 }
 
 static void handle_connection_update(TrackerState &state, uint64_t orig,
                                      uint64_t repl, struct nf_conntrack *ct) {
-  auto provider = trace::Provider::GetTracerProvider();
-  auto tracer = provider->GetTracer("conntracker", OPENTELEMETRY_SDK_VERSION);
-
-  auto functionSpan = trace::Scope(
-      tracer->StartSpan(__FUNCTION__, {{"ConnectionID", "DUMMY"}}));
-  /* We only ever have a reference in the tuple to id map, when
-   * there is one in the id to state map as well! */
-
   if (rand() > RAND_MAX / 3) {
     if (rand() > RAND_MAX / 2) {
       state.persisted.delayed->Add(1);
@@ -223,23 +167,9 @@ static void handle_connection_new(struct nf_conntrack *ct, TrackerState &state,
   }
 }
 
-static void remove_connection_from_state(TrackerState &state) {
-  auto provider = trace::Provider::GetTracerProvider();
-  auto tracer = provider->GetTracer("conntracker", OPENTELEMETRY_SDK_VERSION);
-  auto span = tracer->StartSpan(__FUNCTION__);
-  auto functionSpan = trace::Scope(span);
-}
-
-static size_t msgs = 0;
-
 static int print_new_conntrack(const struct nlmsghdr *hdr,
                                enum nf_conntrack_msg_type t,
                                struct nf_conntrack *ct, void *data) {
-  ++msgs;
-  auto provider = trace::Provider::GetTracerProvider();
-  auto tracer = provider->GetTracer("conntracker", OPENTELEMETRY_SDK_VERSION);
-
-  auto functionSpan = trace::Scope(tracer->StartSpan(__FUNCTION__));
   TrackerState *ptr = static_cast<TrackerState *>(data);
   auto &state = *ptr;
 
@@ -247,7 +177,6 @@ static int print_new_conntrack(const struct nlmsghdr *hdr,
     handle_connection_new(ct, state);
   } else if (true) {
     handle_connection_new(ct, state);
-	remove_connection_from_state(state);
     state.updown_counter->Add(-1);
   }
 
@@ -255,7 +184,6 @@ static int print_new_conntrack(const struct nlmsghdr *hdr,
 }
 
 int main(int argc, char **argv) {
-  initTracer();
   initMetrics();
 
   TrackerState state = {};
@@ -293,17 +221,11 @@ int main(int argc, char **argv) {
 
   auto lambda = [&]() {
     catch_counter->Add(1);
-    auto provider = trace::Provider::GetTracerProvider();
-    auto tracer = provider->GetTracer("conntracker", OPENTELEMETRY_SDK_VERSION);
-
-    auto functionSpan = trace::Scope(tracer->StartSpan("nfct_catch"));
-    msgs = 0;
 	size_t iterations = rand() % 1000;
     for (size_t i = 0; i < iterations; ++i) {
       print_new_conntrack(nullptr, NFCT_T_UNKNOWN, nullptr, &state);
     }
 
-    histogram_counter->Record(msgs, context);
 
     return 0;
   };
