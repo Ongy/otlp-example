@@ -52,7 +52,6 @@ opentelemetry::exporter::otlp::OtlpHttpExporterOptions opts = {
     .url = "http://mario.local.ongy.net:4318/v1/traces",
 };
 
-
 void initMetrics() {
   opentelemetry::exporter::metrics::PrometheusExporterOptions promOptions;
   metric_sdk::PeriodicExportingMetricReaderOptions options;
@@ -143,28 +142,18 @@ static void create_new_connection(TrackerState &state, uint64_t orig,
 
 static void handle_connection_update(TrackerState &state, uint64_t orig,
                                      uint64_t repl, struct nf_conntrack *ct) {
-  if (rand() > RAND_MAX / 3) {
-    if (rand() > RAND_MAX / 2) {
-      state.persisted.delayed->Add(1);
-    }
-    state.persisted.direct->Add(1);
-  } else {
-    state.persisted.skipped->Add(1);
-  }
+  state.persisted.delayed->Add(1);
+  state.persisted.direct->Add(1);
+  state.persisted.skipped->Add(1);
 }
 
 /* TODO: This needs to be moved. Obviously */
 static void handle_connection_new(struct nf_conntrack *ct, TrackerState &state,
                                   bool closing = false) {
-  if (rand() > RAND_MAX / 19) {
-    handle_connection_update(state, 0, 0, ct);
-  } else {
-    state.updown_counter->Add(1);
-    create_new_connection(state, 0, 0, ct);
-    if (closing) {
-      state.close_counter->Add(1);
-    }
-  }
+  handle_connection_update(state, 0, 0, ct);
+  state.updown_counter->Add(1);
+  create_new_connection(state, 0, 0, ct);
+  state.close_counter->Add(1);
 }
 
 static int print_new_conntrack(const struct nlmsghdr *hdr,
@@ -173,12 +162,8 @@ static int print_new_conntrack(const struct nlmsghdr *hdr,
   TrackerState *ptr = static_cast<TrackerState *>(data);
   auto &state = *ptr;
 
-  if (rand() > RAND_MAX / 20) {
-    handle_connection_new(ct, state);
-  } else if (true) {
-    handle_connection_new(ct, state);
-    state.updown_counter->Add(-1);
-  }
+  handle_connection_new(ct, state);
+  state.updown_counter->Add(-1);
 
   return NFCT_CB_STOP;
 }
@@ -221,11 +206,10 @@ int main(int argc, char **argv) {
 
   auto lambda = [&]() {
     catch_counter->Add(1);
-	size_t iterations = rand() % 1000;
+    size_t iterations = rand() % 1000;
     for (size_t i = 0; i < iterations; ++i) {
       print_new_conntrack(nullptr, NFCT_T_UNKNOWN, nullptr, &state);
     }
-
 
     return 0;
   };
