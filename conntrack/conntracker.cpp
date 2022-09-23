@@ -74,18 +74,6 @@ void initMetrics() {
 
   auto p = std::static_pointer_cast<metric_sdk::MeterProvider>(provider);
   p->AddMetricReader(std::move(reader));
-
-  // counter view
-  std::unique_ptr<metric_sdk::InstrumentSelector> instrument_selector{
-      new metric_sdk::InstrumentSelector(metric_sdk::InstrumentType::kCounter,
-                                         "name_counter")};
-  std::unique_ptr<metric_sdk::MeterSelector> meter_selector{
-      new metric_sdk::MeterSelector("Metric", "1.2",
-                                    "https://opentelemetry.io/schemas/1.2.0")};
-  std::unique_ptr<metric_sdk::View> sum_view{new metric_sdk::View{
-      "Metric", "description", metric_sdk::AggregationType::kSum}};
-  p->AddView(std::move(instrument_selector), std::move(meter_selector),
-             std::move(sum_view));
 }
 } // namespace
 
