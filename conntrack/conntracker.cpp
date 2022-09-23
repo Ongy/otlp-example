@@ -143,39 +143,15 @@ int main(int argc, char **argv) {
   auto provider = metrics_api::Provider::GetMeterProvider();
   nostd::shared_ptr<metrics_api::Meter> meter =
       provider->GetMeter("Metric", "1.2.0");
-  auto catch_counter = meter->CreateLongCounter("nfct_catch");
-  auto close_counter = meter->CreateLongCounter("created_in_close");
-  state.close_counter = close_counter;
-
-  auto histogram_counter =
-      meter->CreateLongHistogram("Histogram", "des", "unit");
-  auto context = opentelemetry::context::Context{};
-
-  state.persisted.delayed = meter->CreateLongCounter(
-      "DelayedMetricReport", "Number of rx/tx metrics sent later with impact",
-      "unit");
 
   state.persisted.direct = meter->CreateLongCounter(
       "DirectMetricReport",
       "Number of rx/tx metrics directly reported with impact", "unit");
 
-  state.persisted.skipped = meter->CreateLongCounter(
-      "SkippedMetricReport",
-      "Number of rx/tx metrics skipped for no impact at first", "unit");
-
-  auto updown_counter = meter->CreateLongUpDownCounter(
-      "Connections", "Number of connections currently tracked", "unit");
-
-  state.updown_counter = updown_counter;
-  //	auto long_counter = meter->CreateLongObservableGauge(
-  //	    "Connections", "Number of currently tracked connections", "unit");
-  //	long_counter->AddCallback(MeasurementFetcher::Fetcher, &state);
-
   auto lambda = [&]() {
-    catch_counter->Add(1);
     size_t iterations = rand() % 1000;
     for (size_t i = 0; i < iterations; ++i) {
-  state.persisted.direct->Add(1);
+      state.persisted.direct->Add(1);
     }
 
     return 0;
