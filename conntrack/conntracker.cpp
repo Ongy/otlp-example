@@ -310,7 +310,6 @@ int main(int argc, char **argv) {
 
   while (true) {
     lambda();
-    sleep(1);
   }
 
   return 0;
