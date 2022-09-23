@@ -115,50 +115,19 @@ void initMetrics() {
 }
 } // namespace
 
-using LongCounter = opentelemetry::v1::nostd::shared_ptr<
-    opentelemetry::v1::metrics::Counter<long>>;
-
-struct TrackerState {
-  TrackerState() noexcept : updown_counter(nullptr) {}
-
-  opentelemetry::v1::nostd::shared_ptr<
-      opentelemetry::v1::metrics::UpDownCounter<long>>
-      updown_counter;
-  opentelemetry::v1::nostd::shared_ptr<
-      opentelemetry::v1::metrics::Counter<long>>
-      close_counter;
-
-  struct {
-    LongCounter direct;
-    LongCounter delayed;
-    LongCounter skipped;
-  } persisted;
-};
-
 int main(int argc, char **argv) {
   initMetrics();
-
-  TrackerState state = {};
 
   auto provider = metrics_api::Provider::GetMeterProvider();
   nostd::shared_ptr<metrics_api::Meter> meter =
       provider->GetMeter("Metric", "1.2.0");
 
-  state.persisted.direct = meter->CreateLongCounter(
+  auto instrument = meter->CreateLongCounter(
       "DirectMetricReport",
       "Number of rx/tx metrics directly reported with impact", "unit");
 
-  auto lambda = [&]() {
-    size_t iterations = rand() % 1000;
-    for (size_t i = 0; i < iterations; ++i) {
-      state.persisted.direct->Add(1);
-    }
-
-    return 0;
-  };
-
   while (true) {
-    lambda();
+    instrument->Add(1);
   }
 
   return 0;
