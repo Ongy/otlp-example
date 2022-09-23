@@ -99,19 +99,6 @@ void initMetrics() {
       "Metric", "description", metric_sdk::AggregationType::kHistogram}};
   p->AddView(std::move(histogram_instrument_selector),
              std::move(histogram_meter_selector), std::move(histogram_view));
-
-  // gauge view
-  std::string updown_name = std::string("Metric") + "_updown";
-  std::unique_ptr<metric_sdk::InstrumentSelector> updown_instrument_selector{
-      new metric_sdk::InstrumentSelector(
-          metric_sdk::InstrumentType::kUpDownCounter, "updown")};
-  std::unique_ptr<metric_sdk::MeterSelector> updown_meter_selector{
-      new metric_sdk::MeterSelector("Metric", "1.2",
-                                    "https://opentelemetry.io/schemas/1.2.0")};
-  std::unique_ptr<metric_sdk::View> updown_view{new metric_sdk::View{
-      "Metric", "description", metric_sdk::AggregationType::kSum}};
-  p->AddView(std::move(updown_instrument_selector),
-             std::move(updown_meter_selector), std::move(updown_view));
 }
 } // namespace
 
