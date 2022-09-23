@@ -135,28 +135,6 @@ struct TrackerState {
   } persisted;
 };
 
-static void handle_connection_update(TrackerState &state, uint64_t orig,
-                                     uint64_t repl, struct nf_conntrack *ct) {
-  state.persisted.direct->Add(1);
-}
-
-/* TODO: This needs to be moved. Obviously */
-static void handle_connection_new(struct nf_conntrack *ct, TrackerState &state,
-                                  bool closing = false) {
-  handle_connection_update(state, 0, 0, ct);
-}
-
-static int print_new_conntrack(const struct nlmsghdr *hdr,
-                               enum nf_conntrack_msg_type t,
-                               struct nf_conntrack *ct, void *data) {
-  TrackerState *ptr = static_cast<TrackerState *>(data);
-  auto &state = *ptr;
-
-  handle_connection_new(ct, state);
-
-  return NFCT_CB_STOP;
-}
-
 int main(int argc, char **argv) {
   initMetrics();
 
@@ -197,7 +175,7 @@ int main(int argc, char **argv) {
     catch_counter->Add(1);
     size_t iterations = rand() % 1000;
     for (size_t i = 0; i < iterations; ++i) {
-      print_new_conntrack(nullptr, NFCT_T_UNKNOWN, nullptr, &state);
+  state.persisted.direct->Add(1);
     }
 
     return 0;
