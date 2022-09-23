@@ -86,19 +86,6 @@ void initMetrics() {
       "Metric", "description", metric_sdk::AggregationType::kSum}};
   p->AddView(std::move(instrument_selector), std::move(meter_selector),
              std::move(sum_view));
-
-  // histogram view
-  std::string histogram_name = std::string("Metric") + "_histogram";
-  std::unique_ptr<metric_sdk::InstrumentSelector> histogram_instrument_selector{
-      new metric_sdk::InstrumentSelector(metric_sdk::InstrumentType::kHistogram,
-                                         "Histogram")};
-  std::unique_ptr<metric_sdk::MeterSelector> histogram_meter_selector{
-      new metric_sdk::MeterSelector("Metric", "1.2",
-                                    "https://opentelemetry.io/schemas/1.2.0")};
-  std::unique_ptr<metric_sdk::View> histogram_view{new metric_sdk::View{
-      "Metric", "description", metric_sdk::AggregationType::kHistogram}};
-  p->AddView(std::move(histogram_instrument_selector),
-             std::move(histogram_meter_selector), std::move(histogram_view));
 }
 } // namespace
 
